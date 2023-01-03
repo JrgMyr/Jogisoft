@@ -1,6 +1,6 @@
 # Jogisoft
 
-Repository for shared software
+Repository for shared software, mostly written in Perl.
 
 # License
 
