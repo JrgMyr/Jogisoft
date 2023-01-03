@@ -1,2 +1,3 @@
-# TestNr2
-Zweiter Test
+# Jogisoft
+
+Repository for shared software
