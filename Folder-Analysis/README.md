@@ -10,4 +10,4 @@ Tool to analyze a folder tree and aggregate summary statistics.
 
 # dupescan.pl, diffscan.pl
 
-Tools to compare the intersection of two folders or identifying missing files between almost identical folders (difference analysis).
+Tools to compare the intersection of two folders or to identify missing files between nearly identical folders (difference analysis).
