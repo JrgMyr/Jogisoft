@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer @ Jogisoft, 2005-10-31 ... 2021-09-17, 2022-01-03, 2022-02-10, 2022-09-01, 2022-12-23, 2023-01-03
+# (c) Joerg Meyer, 2005-10-31 ... 2021-09-17, 2022-01-03, 2022-02-10, 2022-09-01, 2022-12-23, 2023-01-03
 # Code copyrighted and shared under GPL v3.0
+# mailto:info@jogisoft.de
 
 $PROGRAM = 'analyzeCSV.pl';
 $VERSION = 'V1.00';
