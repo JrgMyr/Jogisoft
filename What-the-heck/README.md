@@ -1,4 +1,4 @@
-This folder contains a simple and handy abbreviation lookup called "What-the-heck" for the Bash shell.
+This folder contains a simple shell-based abbreviation lookup called "What-the-heck".
 
 I consists of a Bash function called "wth" and a set of lookup files. Those reside into a folder "/usr/local/share/wth".
 
