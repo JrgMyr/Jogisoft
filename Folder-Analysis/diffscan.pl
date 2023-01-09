@@ -1,11 +1,12 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer @ Jogisoft, 2005-01-05, 2010-02-06, 2022-12-26, 2023-01-03
+# (c) Joerg Meyer, 2005-01-05, 2010-02-06, 2022-12-26, 2023-01-09
 # Code copyrighted and shared under GPL v3.0
+# mailto:info@jogisoft.de
 
 # require cwd;
 
 $PROGRAM = 'diffscan.pl';
-$VERSION = 'v0.87';
+$VERSION = 'v0.88';
 $DESCRPT = 'Verzeichnisbaeume vergleichen.';
 
 $trenn   = ' - ';
@@ -68,6 +69,17 @@ sub version {
           $DESCRPT, "\n";
     exit;
 }
+
+sub formint {
+    my $t = shift;
+
+    if ($t > 1000) {
+        $t =~ s/(.+)(...)$/$1.$2/;
+    }
+    return $t;
+}
+ 
+# Vergleich mit @ARGV bereits oben!
 
 foreach (@ARGV) {
     if (substr($_, 0, 1) eq '-') {
@@ -270,7 +282,7 @@ foreach $t (keys %filearch) {
 }
 
 print '-' x 75, "\n",
-      'Fertig nach ', $diffcount, ' fehlenden Dateien in ',
+      'Fertig nach ', &formint($diffcount), ' fehlenden Dateien in ',
                       scalar(@Pfade), " Vergleichsobjekt(en).\n"
     unless $Ausgabe == $AUSG_NAME;
 
