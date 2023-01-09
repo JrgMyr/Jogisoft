@@ -1,9 +1,9 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer @ Jogisoft, 2005-08-19, 2016-09-27, 2017-01-27..30, 2023-01-03
+# (c) Joerg Meyer @ Jogisoft, 2005-08-19, 2016-09-27, 2017-01-27..30, 2023-01-09
 # Code copyrighted and shared under GPL v3.0
 
 $PROGRAM   = 'analyzeExt';
-$VERSION   = 'V0.21';
+$VERSION   = 'V0.22';
 $DESCRPT   = 'Verzeichnisbaum nach Dateitypen gruppieren.';
 
 $STARTPFAD = '';
@@ -130,7 +130,7 @@ foreach (@ARGV) {
         m/a/ && ($VERBOSE   = 1);
         m/b/ && ($MAXFOUR   = 0);
         m/h|\?/ && &usage();
-        m/g/ && ($CAPTEXT   = 0);
+        m/g/ && ($CAPEXT    = 0);
         m/i/ && ($CAPEXT    = 1);
         m/n/ && ($RECURS    = 0);
         m/m/ && ($MAXFOUR   = 1);
