@@ -1,9 +1,10 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer @ Jogisoft, 2005-01-05, 2010-02-07, 2022-12-26
+# (c) Joerg Meyer, 2005-01-05, 2010-02-07, 2022-12-26, 2023-01-09
 # Code copyrighted and shared under GPL v3.0
+# mailto:info@jogisoft.de
 
 $PROGRAM = 'dupescan.pl';
-$VERSION = 'v0.87';
+$VERSION = 'v0.88';
 $DESCRPT = 'Dateidubletten auflisten.';
 
 $trenn   = ' - ';
@@ -52,7 +53,7 @@ sub usage {
           "\t-n\tIdent: Name, Groesse, Zeitstempel (Vorgabe)\n",
           "\t-o\tIdent: Nur Name und Typ\n",
           "\t-q\tKeine Textmeldungen\n",
-#         "\t-e\tDateien mittels RegExps ausschliessen\n",
+#         "\t-r\tDateien mittels RegExps ausschliessen\n",
           "\t-s\tStatistikinformationen inkl. Pfadnamen\n",
           "\t-t\tIdent: Typ, Groesse, Zeitstempel\n",
           "\t-u\tAusgabe: Unix-Shellskript\n",
@@ -66,6 +67,15 @@ sub version {
     exit;
 }
 
+sub formint {
+    my $t = shift;
+
+    if ($t > 1000) {
+        $t =~ s/(.+)(...)$/$1.$2/;
+    }
+    return $t;
+}
+ 
 if (@ARGV == 0) {
     print $PROGRAM, $dopp, "Keine Objekte angegeben.\n\n";
     &usage();
@@ -293,9 +303,9 @@ elsif ($Ausgabe == $AUSG_UNIX) {
 close(OUT) if $Ausgabe != 0;
 
 print '-' x 75, "\n",
-      'Fertig mit ', $dupecount, ' Dubletten in ',
-                     $filecount, ' Dateien in ',
-                     $dircount, ' Verzeichnissen in ',
+      'Fertig mit ', &formint($dupecount), ' Dubletten in ',
+                     &formint($filecount), ' Dateien in ',
+                     &formint($dircount), ' Verzeichnissen in ',
                      scalar(@Pfade), " Objekt(en).\n"
     unless ($Ausgabe == $AUSG_NAME) or $STUMM;
 

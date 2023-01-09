@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer @ Jogisoft, 2005-08-19, 2016-09-27, 2017-01-27..30, 2023-01-09
+# (c) Joerg Meyer, 2005-08-19, 2016-09-27, 2017-01-27..30, 2023-01-09
 # Code copyrighted and shared under GPL v3.0
+# mailto:info@jogisoft.de
 
 $PROGRAM   = 'analyzeExt';
 $VERSION   = 'V0.22';
@@ -166,9 +167,8 @@ foreach (sort keys %extCount) {
 }
 
 print $errorcount, " Fehler sind aufgetreten.\n" if $errorcount;
-print &formint($dircount), ' Verzeichnissen (max. Tiefe: ', $maxtiefe, ') mit ',
+print &formint($dircount), ' Verzeichnisse (max. Tiefe: ', $maxtiefe, ') mit ',
       &formint($filecount), ' Dateien in ',
       &formsize($filevolume), " GB untersucht.\n";
 print scalar keys %extCount, " verschiedene Dateitypen gefunden.\n",
       "Fertig.\n";
-
