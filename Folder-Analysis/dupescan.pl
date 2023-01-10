@@ -1,10 +1,10 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer, 2005-01-05, 2010-02-07, 2022-12-26, 2023-01-09
+# (c) Joerg Meyer, 2005-01-05, 2010-02-07, 2022-12-26, 2023-01-10
 # Code copyrighted and shared under GPL v3.0
 # mailto:info@jogisoft.de
 
 $PROGRAM = 'dupescan.pl';
-$VERSION = 'v0.88';
+$VERSION = 'v0.90';
 $DESCRPT = 'Dateidubletten auflisten.';
 
 $trenn   = ' - ';
@@ -27,6 +27,7 @@ $ONEDAY  = 24 * 3600;
 
 $dupecount = $errorcount = $filecount = $dircount = $exclcount = 0;
 $tiefe = $AUSFUEHRL = $STUMM = $Ausgabe = $Ident = $Ignorecase = $ZeigStat = 0;
+$KOMPLETT = 1;
 $AuswTiefe = -1;
 $NextArgListFile = $NextArgAusschlListe = 0;
 @Pfade = ();
@@ -49,7 +50,9 @@ sub usage {
           "\t-g\tGross-/Kleinschreibung ignorieren\n",
           "\t-h\tHilfeseite anzeigen\n",
           "\t-i\tAlle Unterverzeichnisse auswerten (Vorgabe)\n",
+          "\t-k\tAlle Dubletten, auch innerhalb Objekten (Vorgabe)\n",
           "\t-l\tAusgabe: Liste mit Dubletten (Vorgabe)\n",
+          "\t-m\tDubletten nur zwischen den Objekten werten\n",
           "\t-n\tIdent: Name, Groesse, Zeitstempel (Vorgabe)\n",
           "\t-o\tIdent: Nur Name und Typ\n",
           "\t-q\tKeine Textmeldungen\n",
@@ -97,7 +100,9 @@ foreach (@ARGV) {
         m/g/ && ($Ignorecase = 1);
         m/h|\?/ && &usage();
         m/i/ && ($AuswTiefe = -1);
+        m/k/ && ($KOMPLETT = 1);
         m/l/ && ($Ausgabe = $AUSG_LISTE);
+        m/m/ && ($KOMPLETT = 0);
         m/n/ && ($Ident = $IDENT_NAME);
         m/o/ && ($Ident = $IDENT_ONLY);
         m/q/ && ($STUMM = 1);
@@ -175,35 +180,46 @@ sub ScanFile {
     }
 
     if (exists $filearch{$id}) {
-        $dupecount++;
 
-        if ($Ausgabe == $AUSG_DOS) {
-            $AktDat =~ tr/ÄÖÜäöüß/Ž™š„”á/;
-            print OUT 'del /Q "', $AktDat, '"', "\n";
-        }
-        elsif ($Ausgabe == $AUSG_UNIX) {
-            print OUT 'rm -f ', $AktDat, "\n";
-        }
-        elsif ($Ausgabe == $AUSG_NAME) {
-            if ($PathSep eq '/') {
-                $AktDat =~ s/([ '])/\\\1/g;
+        if ($KOMPLETT or $NaechstesObjekt) {
+            $dupecount++;
+
+            if ($Ausgabe == $AUSG_DOS) {
+                $AktDat =~ tr/ÄÖÜäöüß/Ž™š„”á/;
+                print OUT 'del /Q "', $AktDat, '"', "\n";
+            }
+            elsif ($Ausgabe == $AUSG_UNIX) {
+                print OUT 'rm -f ', $AktDat, "\n";
+            }
+            elsif ($Ausgabe == $AUSG_NAME) {
+                if ($PathSep eq '/') {
+                    $AktDat =~ s/([ '])/\\\1/g;
+                }
+                else {
+                    ($AktDat =~ m/ /) && ($AktDat = '"' . $AktDat . '"');
+               }
+               print $AktDat, "\n";
             }
             else {
-                ($AktDat =~ m/ /) && ($AktDat = '"' . $AktDat . '"');
-            }
-            print $AktDat, "\n";
+                print '-' x 75, "\n" unless $STUMM;
+                print $filearch{$id}, "\n";
+                print $AktDat, "\n" unless $STUMM;
+           }
+
+           print "\t", $AktDat, "\n"
+               if ($Ausgabe > $AUSG_LISTE) && ($Ausgabe < $AUSG_NAME) && ($AUSFUEHRL);
         }
         else {
-            print '-' x 75, "\n" unless $STUMM;
-            print $filearch{$id}, "\n";
-            print $AktDat, "\n" unless $STUMM;
+            # Im ersten Objekt werden bei -m keine Dubletten gewertet.
         }
-
-        print "\t", $AktDat, "\n"
-            if ($Ausgabe > $AUSG_LISTE) && ($Ausgabe < $AUSG_NAME) && ($AUSFUEHRL);
     }
     else {
-        $filearch{$id} = $AktDat;
+        if ($KOMPLETT or !$NaechstesObjekt) {
+            $filearch{$id} = $AktDat;
+        }
+        else {
+            # Weitere Objekte werden bei -m nicht als Ausgang für Dubletten mitgezählt.
+        }
     }
 
 }
@@ -252,10 +268,23 @@ sub ScanDir {
 print $DESCRPT, "\n"
     unless ($Ausgabe == $AUSG_NAME) or $STUMM;
 
+if ($AUSFUEHRL) {
+    if ($KOMPLETT) {
+        print "Alle Dubletten in den Objekten werden gewertet (komplett).\n";
+    }
+    else {
+        print "Nur Dubletten zwischen dem ersten Objekt und weiteren Objekten werten.\n";
+    }
+}
+
+if (!$KOMPLETT && scalar(@Pfade) == 1) {
+    die "Keine Vergleichsobjekte fuer '-m' angegeben!\n";
+}
+
 print 'Gebe Dubletten in ',
       ($Ausgabe ? 'Loeschskript' : 'Listenform'),
       " aus.\n"
-      if $AUSFUEHRL and $Ausgabe != $AUSG_NAME;
+    if $AUSFUEHRL and $Ausgabe != $AUSG_NAME;
 
 if ($Ausgabe == $AUSG_DOS) {
     open(OUT, '>dupes.bat');
@@ -268,8 +297,12 @@ elsif ($Ausgabe == $AUSG_UNIX) {
 
 $StartPfad = $ENV{'PWD'};
 
-print 'Dateien wegen Namen ausschliessen: ', substr($ExclList, 1, -1) , "\n" if $ExclList gt ',';
+unless ($STUMM) {
+    print 'Dateien wegen Namen ausschliessen: ', substr($ExclList, 1, -1) , "\n"
+        if $ExclList gt ','
+}
 
+$NaechstesObjekt = 0;
 foreach $pfad (@Pfade) {
 
     $pfad =~ s/(\/|\\)+$//;
@@ -291,6 +324,7 @@ foreach $pfad (@Pfade) {
     else {
         print $AUSFUEHRL ? "\tWas ist das?\n" : $PROGRAM . $dopp . $pfad . " nicht gefunden.\n";
     }
+    $NaechstesObjekt = 1;
 }
 
 print OUT "echo Fertig.\n";
