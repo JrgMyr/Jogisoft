@@ -1,10 +1,10 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer, 2005-10-31 ... 2021-09-17, 2022-01-03, 2022-02-10, 2022-09-01, 2022-12-23, 2023-01-03
+# (c) Joerg Meyer, 2005-10-31 ... 2021-09-17, 2022-01-03, 2022-02-10, 2022-09-01, 2022-12-23, 2023-01-10
 # Code copyrighted and shared under GPL v3.0
 # mailto:info@jogisoft.de
 
 $PROGRAM = 'analyzeCSV.pl';
-$VERSION = 'V1.00';
+$VERSION = 'V1.01';
 $DESCRPT = 'Struktur einer Datei mit separierten Feldinhalten ermitteln.';
 
 sub usage {
@@ -133,7 +133,7 @@ else {
 }        
 
 if ($ZAEHLEWERTE) {
-    ($STATNAME = $DATEINAME) =~ s|^.*/||;
+    ($STATNAME = $DATEINAME) =~ s|^.*[/\\]||;
     $STATNAME = 'stat_' . $STATNAME . '.txt';
     $STATNAME =~ s/\.csv\.txt$/.txt/i;
     $STATNAME =~ s/\.txt\.txt$/.txt/i;
@@ -141,7 +141,7 @@ if ($ZAEHLEWERTE) {
 }
 
 if ($CREATESQL) {
-    ($SQLNAME = $DATEINAME) =~ s|^.*/||;
+    ($SQLNAME = $DATEINAME) =~ s|^.*[/\\]||;
     $SQLNAME = 'create_'. $SQLNAME . '.sql';
     $SQLNAME =~ s/\.csv\.sql$/.sql/i;
     $SQLNAME =~ s/\.txt\.sql$/.sql/i;
