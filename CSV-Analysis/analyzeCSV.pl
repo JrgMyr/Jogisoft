@@ -1,10 +1,10 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer, 2005-10-31 ... 2021-09-17, 2022-01-03, 2022-02-10, 2022-09-01, 2022-12-23, 2023-01-10
+# (c) Joerg Meyer, 2005-10-31 ... 2021-09-17, 2022-01-03, 2022-09-01, 2022-12-23, 2023-01-10, 2023-02-05
 # Code copyrighted and shared under GPL v3.0
 # mailto:info@jogisoft.de
 
 $PROGRAM = 'analyzeCSV.pl';
-$VERSION = 'V1.01';
+$VERSION = 'V1.02';
 $DESCRPT = 'Struktur einer Datei mit separierten Feldinhalten ermitteln.';
 
 sub usage {
@@ -232,7 +232,7 @@ while (<INP>) {
     }
 
     if (/^\s*$/) {
-        print '-- Zeile ', $zeilen, " ist leer.\n" unless $STUMM;
+        print '-- Zeile ', ($TITELZEILE + $zeilen), " ist leer.\n" unless $STUMM;
         next;
     }
 
@@ -379,9 +379,9 @@ close INP;
 
 print "\n" unless $STUMM;
 
-$FORMSTR = "%3s  %30s%2s%3s  %3s  %3s  %-24s\n";
-printf $FORMSTR, 'Lfd', 'Feldname', '', 'Typ', 'Brt', 'Len', 'Hinweis';
-$TRENNSTR = sprintf $FORMSTR, '---', '-' x 30, '', '---', '---', '---', '-' x 15;
+$FORMSTR = "%3s  %30s%2s%3s  %3s  %4s  %-24s\n";
+printf $FORMSTR, 'Lfd', 'Feldname', '', 'Typ', 'Brt', 'mLen', 'Hinweis';
+$TRENNSTR = sprintf $FORMSTR, '---', '-' x 30, '', '---', '---', '----', '-' x 15;
 print $TRENNSTR;
 
 $feld = 0;
@@ -404,10 +404,10 @@ if ($ZAEHLEWERTE) {
 
     open(OUT, '>' . $STATNAME) || die "$STATNAME ... geht nicht auf!\n";
 
-    $FORMSTR = "%3s  %30s%2s%3s %4s %4s %6s %6s  %6s  %-40s%2s%6s%1s%7s  %-15s  %-24s\n";
-    printf OUT $FORMSTR, 'Lfd', 'Feldname', '', 'Typ', 'Brt', 'Len', 'Zeile', 'Inhalt', 'Leer',
+    $FORMSTR = "%3s  %30s%2s%3s %4s %4s %6s %6s  %7s  %-40s%2s%6s%1s%7s  %-15s  %-24s\n";
+    printf OUT $FORMSTR, 'Lfd', 'Feldname', '', 'Typ', 'Brt', 'mLen', 'in_Zl', 'Inhalt', 'Leer',
                          'Wertebereich', '', 'WrtVor', '', 'HWrtAnz', 'HWrtInhalt', 'Hinweis';
-    $TRENNSTR = sprintf $FORMSTR, '---', '-' x 30, '', '---', '---', '---', '------', '------',
+    $TRENNSTR = sprintf $FORMSTR, '---', '-' x 30, '', '---', '---', '----', '------', '------',
                          '------', '-' x 40, '', '------', '', '-------', '-' x 15, '-' x 15;
     print OUT $TRENNSTR;
 
@@ -473,7 +473,7 @@ if ($ZAEHLEWERTE) {
     print OUT $TRENNSTR;
     print OUT 'Zeile ', $laengnum, ' war mit ', $laengste, " Stellen am laengsten.\n" if $ZEIGLANG;
     print OUT 'Fertig nach ', $datenzeilen, ' Datenzeilen in ', 
-        $TITELZEILE+$zeilen, " Dateizeilen.\n";
+        ($TITELZEILE + $zeilen), " Dateizeilen.\n";
 
     close OUT;
 }
