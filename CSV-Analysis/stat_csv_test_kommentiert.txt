@@ -1,0 +1,27 @@
+Lfd                        Feldname  Typ  Brt mLen  in_Zl Inhalt     Leer  Wertebereich                              WrtVor HWrtAnz  HWrtInhalt       Hinweis
+---  ------------------------------  ---  --- ---- ------ ------   ------  ----------------------------------------  ------ -------  ---------------  ---------------
+  1                            Name    T    2    2      5      8        0  aa .. xx                                       8!      1
+  2                         Vorname    T    6    2      5      8        0  bb, dd, ff, hh, yy                             5       3  dd
+  3                         Telefon    I    5    5      6      7        1  0124, 12-44, 1231, 322                         4       2  322              Zl. 6 I~?: 12-44
+  4                             PLZ    I    9    6     13      8        0  2349 .. 123123                                 7       1
+  5                             Ort    T    9    9     10      8        0  dofsdfo .. zzzzz                               7       1
+  6                        Postfach    -    0    -      -
+  7                         Periode    P    7    7      5      8        0  2017-04 .. 2022-05                             7       1
+  8                          Feld_8    T    4    4      8      8        0  yyyy                                           1       1                   Zl. 4: Neues Feld
+---  ------------------------------  ---  --- ---- ------ ------   ------  ----------------------------------------  ------ -------  ---------------  ---------------
+Zeile 8 war mit 40 Stellen am laengsten.
+Fertig nach 8 Datenzeilen in 13 Dateizeilen.
+
+Lfd = Laufende Nummer des Feldes in der Datenzeile
+Feldname = Name der Spalte gemäß Titelzeile
+Typ = Typ der Feldwerte: I=Integer, L=LongInteger, R=Rationale Zahl, D=Datum, P=Periode (YYYY-MM), U=Uhrzeit, Z=Zeitangabe aus Datum und Uhrzeit, T=Text, '-'=durchgehend leeres Feld
+Brt = Breite des Feldes, inklusive anhängender Leerstellen
+mLen = Längster Inhalt
+in_ZL = Zeilennummer mit längstem Feldinhalt
+Inhalt = Anzahl der Zeilen mit befülltem Feldwert
+Leer = Anzahl der Zeilen mit leerem Feld
+Wertebereich = sortierte Anordnung einzelner Werte oder des Intervalls der Feldwerte
+WrtVor = Anzahl der verschiedenen Feldwerte (Wertevorrat). Ein Ausrufungszeichen am Ende zeigt ein Feld mit eindeutigen Feldwerten an.
+HWrtAnz = Anzahl des häufigsten Feldwertes
+HWrtInhalt = Häufigster Feldwert
+Hinweis = Besonderheiten wie zum Beispiel unbekannte Feldwerttypen

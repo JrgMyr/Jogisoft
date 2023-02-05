@@ -1,0 +1,13 @@
+Vorspann
+--------
+
+Name;Vorname;Telefon;PLZ;Ort;Postfach;Periode
+aa;bb;0124;34233;oooooo;;2022-01
+cc;dd;12-44;43546;wwwwww;;2021-12
+xx;yy
+dd;hh    ;1231;77656;xxxxx;;2022-05;yyyy
+ee;ff;322;23234    ;zzzzz;;2017-04
+ff;dd;;11212;dofusüof;;2018-08
+gg;bb;322;2349;dofsdfo;;2019-02
+
+hh;dd;1231;123123;ycyxcy;;2021-03
