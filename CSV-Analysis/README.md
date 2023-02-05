@@ -2,6 +2,6 @@ This folder shares the tool "analyzeCSV.pl" to analyze files with comma-separate
 
 Preparing files with separated values, being it commas or tabs or other characters is an essential step in database preparation.
 
-The file "csv_test.txt" is a sample data file to test the analysis. It does contain headers however only in line 4 (!). So you might invoke the analysis with "-t 4".
+The file "csv_test.txt" is a sample data file to test the analysis. It does contain headers, however only in line 4 (!). So you might invoke the analysis with "-t 4".
 
-Additionally, an annotated statistics analysis is provided to explain the columns. Invoke the sample file with "-w", in this case with "-wt 4".
+Additionally, an annotated statistics analysis is provided to explain the columns. Invoke the sample file with "-w" to write an analysis into a separated file, in this case with "-wt 4".
