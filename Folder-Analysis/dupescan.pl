@@ -1,10 +1,10 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer, 2005-01-05, 2010-02-07, 2022-12-26, 2023-01-10
+# (c) Joerg Meyer, 2005-01-05, 2010-02-07, 2022-12-26, 2023-10-28..11-10, 2024-01-15, 2024-05-17..30
 # Code copyrighted and shared under GPL v3.0
 # mailto:info@jogisoft.de
 
 $PROGRAM = 'dupescan.pl';
-$VERSION = 'v0.90';
+$VERSION = 'y1.00';
 $DESCRPT = 'Dateidubletten auflisten.';
 
 $trenn   = ' - ';
@@ -17,21 +17,25 @@ $AUSG_LISTE = 0;
 $AUSG_DOS   = 1;
 $AUSG_UNIX  = 2;
 $AUSG_NAME  = 3;
+$AUSG_NICHT = 4;
 
 $IDENT_NAME = 0;
-$IDENT_ONLY = 1;
-$IDENT_TYP  = 2;
-$IDENT_CRC  = 3;
+$IDENT_SIZE = 1
+$IDENT_ONLY = 2;
+$IDENT_TYP  = 3;
+$IDENT_CRC  = 4;
 
 $ONEDAY  = 24 * 3600;
 
-$dupecount = $errorcount = $filecount = $dircount = $exclcount = 0;
-$tiefe = $AUSFUEHRL = $STUMM = $Ausgabe = $Ident = $Ignorecase = $ZeigStat = 0;
+$symlinkcount = $dupecount = $filecount = $dircount = $exclcount = 0;
+$tiefe = $AUSFUEHRL = $STUMM = $Ausgabe = $Ident = $IGNORECASE = $ZeigStat = 0;
+$errorcount = $emptyfiles = 0;
 $KOMPLETT = 1;
 $AuswTiefe = -1;
-$NextArgListFile = $NextArgAusschlListe = 0;
+$NextArgListFile = $NextArgAusschlListe = $NextArgNurTyp = 0;
 @Pfade = ();
-$AuschlussListe = '';
+$ExclList = $NurTypen = '';
+%filearch = ();
 
 sub usage {
     print 'Usage: ', $PROGRAM, " [Parameter] Objekt[e]\n\n",
@@ -39,28 +43,29 @@ sub usage {
           "\t-0\tKeine Unterverzeichnisse auswerten\n",
           "\t-1\tNur ein Verzeichnis tief auswerten\n",
           "\t-2\tZwei Verzeichnisse tief auswerten\n",
-          "\t-3\tDrei Verzeichnisse tief auswerten\n",
-          "\t-4\tVier Verzeichnisse tief auswerten\n",
+          "\t-<n>\tBeliebige <n> Verzeichnisse tief auswerten\n",
           "\t-a\tAusfuehrliche Meldungen\n",
           "\t-b\tAusgabe: DOS-Batchdatei\n",
-          "\t-c\tIdent: Groesse, SDBM-Hash\n",
+          "\t-c\tIdent: Groesse, SDBM-Hash (nur nicht-leere)\n",
           "\t-d\tAusgabe: Nur Dateinamen mit Pfad\n",
           "\t-e\tListe auszuschliessender Dateinamen\n",
           "\t-f\tDateinamen bzw. Pfade aus Datei einlesen\n",
-          "\t-g\tGross-/Kleinschreibung ignorieren\n",
+          "\t-g\tAlle Unterverzeichnisse auswerten (Vorgabe)\n",
           "\t-h\tHilfeseite anzeigen\n",
-          "\t-i\tAlle Unterverzeichnisse auswerten (Vorgabe)\n",
+          "\t-i\tGross-/Kleinschreibung ignorieren\n",
           "\t-k\tAlle Dubletten, auch innerhalb Objekten (Vorgabe)\n",
           "\t-l\tAusgabe: Liste mit Dubletten (Vorgabe)\n",
-          "\t-m\tDubletten nur zwischen den Objekten werten\n",
-          "\t-n\tIdent: Name, Groesse, Zeitstempel (Vorgabe)\n",
+          "\t-m\tIdent: Name, Groesse, Zeitstempel (Vorgabe)\n",
+          "\t-n\tIdent: Name, Groesse\n",
           "\t-o\tIdent: Nur Name und Typ\n",
           "\t-q\tKeine Textmeldungen\n",
-#         "\t-r\tDateien mittels RegExps ausschliessen\n",
+          "\t-r\tNur angegebene Dateitypen betrachten\n",
           "\t-s\tStatistikinformationen inkl. Pfadnamen\n",
           "\t-t\tIdent: Typ, Groesse, Zeitstempel\n",
           "\t-u\tAusgabe: Unix-Shellskript\n",
-          "\t-v\tVersion anzeigen\n";
+          "\t-v\tVersion anzeigen\n",
+          "\t-x\tDubletten nur zwischen den Objekten werten\n",
+          "\t-z\tAusgabe: Dateien nicht auflisten\n";
     exit;
 }
 
@@ -79,75 +84,35 @@ sub formint {
     return $t;
 }
  
-if (@ARGV == 0) {
-    print $PROGRAM, $dopp, "Keine Objekte angegeben.\n\n";
-    &usage();
-}
-
-foreach (@ARGV) {
-    if (substr($_, 0, 1) eq '-') {
-        m/0/ && ($AuswTiefe = 0);
-        m/1/ && ($AuswTiefe = 1);
-        m/2/ && ($AuswTiefe = 2);
-        m/3/ && ($AuswTiefe = 3);
-        m/4/ && ($AuswTiefe = 4);
-        m/a/ && ($AUSFUEHRL = 1);
-        m/b/ && ($Ausgabe = $AUSG_DOS) && ($PathSep = '\\');
-        m/c/ && ($Ident = $IDENT_CRC);
-        m/d/ && ($Ausgabe = $AUSG_NAME);
-        m/e/ && ($NextArgAusschlListe = 1);
-        m/f/ && ($NextArgListFile = 1);
-        m/g/ && ($Ignorecase = 1);
-        m/h|\?/ && &usage();
-        m/i/ && ($AuswTiefe = -1);
-        m/k/ && ($KOMPLETT = 1);
-        m/l/ && ($Ausgabe = $AUSG_LISTE);
-        m/m/ && ($KOMPLETT = 0);
-        m/n/ && ($Ident = $IDENT_NAME);
-        m/o/ && ($Ident = $IDENT_ONLY);
-        m/q/ && ($STUMM = 1);
-        m/s/ && ($ZeigStat = 1);
-        m/t/ && ($Ident = $IDENT_TYP);
-        m/u/ && ($Ausgabe = $AUSG_UNIX) && ($PathSep = '/');
-        m/v/ && &version();
-    }
-    elsif ($NextArgAusschlListe) {
-        $ExclList = ',' . $_ . ',';
-        $NextArgAusschlListe = 0;
-    }
-    elsif ($NextArgListFile) {
-        if(open FILE, '<' . $_) {
-            while (<FILE>) {
-                chomp;
-                next if /^$/;
-                next if /^#/;
-                push @Pfade, $_;
-            }
-            close FILE;
-        }
-        else {
-            die "Kann Listendatei $_ nicht einlesen.\n";
-        }
-        $NextArgListFile = 0;
-    }
-    else {
-        push @Pfade, $_;
-    }
-}
-
 sub ScanFile {
     my $eintrag = shift;
 
     if (index($ExclList, ','.$eintrag.',') >= $[) {
+        # Einzelne Dateien gemaess Liste ueberspringen
         $exclcount++;
         return 2;
+    }
+
+    if ($NurTypen gt '') {
+        # Nur Dateien durchlassen, die gewuenscht sind!
+        ($eintrag =~ m/\.([^.]*)$/) && ($ext = lc $1);
+
+        if ($NurTypen =~ /$ext,/) {
+            # Komma wichtig, um .js von .jsx zu unterscheiden
+            # Gut, kann weiter
+        }
+        else {
+            return 3;
+        }
     }
 
     $filecount++;
     $AktDat = $AktPath . $PathSep . $eintrag;
 
-    if ($Ident == $IDENT_NAME or $Ident == $IDENT_ONLY) {
-        $id = $Ignorecase ? lc $eintrag : $eintrag;
+    if ($Ident == $IDENT_NAME or
+        $Ident == $IDENT_SIZE or
+        $Ident == $IDENT_ONLY) {
+        $id = $IGNORECASE ? lc $eintrag : $eintrag;
     }
     elsif ($Ident == $IDENT_TYP) {
         $id = $eintrag;
@@ -155,11 +120,16 @@ sub ScanFile {
     }
     elsif ($Ident == $IDENT_CRC) {
         $id = 0;
+        if (-s $eintrag == 0) {
+            $emptyfiles++;
+            return 4;
+        }
 
         if (open FILE, '<' . $eintrag) {
 
             # SDBM Algorithmus
-            while (read(FILE, $t, 4) == 4) {
+            while ($l = read(FILE, $t, 4)) {
+                $t .= ' ' x (4-$l) if $l < 4;
                 $id = (($id << 16) + ($id << 6) - $id + unpack('I', $t));
             }
             close FILE;
@@ -169,14 +139,17 @@ sub ScanFile {
     if ($Ident == $IDENT_ONLY) {
         $id = $eintrag;
     }
-    elsif ($Ident == $IDENT_CRC) {
+    elsif ($Ident == $IDENT_CRC or $Ident == $IDENT_SIZE) {
         $id = join(':', -s $eintrag,
                         $id);
     }
-    else {
+    elsif ($Ident == $IDENT_NAME or $Ident == $IDENT_TYP) {
         $id = join(':', -s $eintrag,
                         int(($^T - $ONEDAY * (-M _)) / 60),
                         $id);
+    }
+    else {
+        die 'Was ist hier passiert? (Ident = ', $Ident, ")\n";
     }
 
     if (exists $filearch{$id}) {
@@ -184,14 +157,7 @@ sub ScanFile {
         if ($KOMPLETT or $NaechstesObjekt) {
             $dupecount++;
 
-            if ($Ausgabe == $AUSG_DOS) {
-                $AktDat =~ tr/ÄÖÜäöüß/Ž™š„”á/;
-                print OUT 'del /Q "', $AktDat, '"', "\n";
-            }
-            elsif ($Ausgabe == $AUSG_UNIX) {
-                print OUT 'rm -f ', $AktDat, "\n";
-            }
-            elsif ($Ausgabe == $AUSG_NAME) {
+            if ($Ausgabe == $AUSG_NAME) {
                 if ($PathSep eq '/') {
                     $AktDat =~ s/([ '])/\\\1/g;
                 }
@@ -199,6 +165,16 @@ sub ScanFile {
                     ($AktDat =~ m/ /) && ($AktDat = '"' . $AktDat . '"');
                }
                print $AktDat, "\n";
+            }
+            elsif ($Ausgabe == $AUSG_DOS) {
+                $AktDat =~ tr/ÄÖÜäöüß/Ž™š„”á/;
+                print OUT 'del /Q "', $AktDat, '"', "\n";
+            }
+            elsif ($Ausgabe == $AUSG_UNIX) {
+                print OUT 'rm -f "', $AktDat, '"', "\n";
+            }
+            elsif ($Ausgabe == $AUSG_NICHT) {
+                # nichts ausgeben.
             }
             else {
                 print '-' x 75, "\n" unless $STUMM;
@@ -221,7 +197,6 @@ sub ScanFile {
             # Weitere Objekte werden bei -m nicht als Ausgang für Dubletten mitgezählt.
         }
     }
-
 }
 
 sub ScanDir {
@@ -245,6 +220,11 @@ sub ScanDir {
         next if $eintrag eq '.' or
                 $eintrag eq '..';
 
+        if (-l $eintrag) {
+            $symlinkcount++;
+            next;
+        }
+
         if (-d $eintrag) {
 
             push @dirstack, $eintrag;
@@ -263,6 +243,65 @@ sub ScanDir {
         }
     }
     return 1;
+}
+
+if (@ARGV == 0) {
+    print $PROGRAM, $dopp, "Keine Objekte angegeben.\n\n";
+    &usage();
+}
+
+foreach (@ARGV) {
+    if (substr($_, 0, 1) eq '-') {
+        m/0/ && ($AuswTiefe = $&);
+        m/a/ && ($AUSFUEHRL = 1);
+        m/b/ && ($Ausgabe = $AUSG_DOS) && ($PathSep = '\\');
+        m/c/ && ($Ident = $IDENT_CRC);
+        m/d/ && ($Ausgabe = $AUSG_NAME);
+        m/e/ && ($NextArgAusschlListe = 1);
+        m/f/ && ($NextArgListFile = 1);
+        m/g/ && ($AuswTiefe = -1);
+        m/h|\?/ && &usage();
+        m/i/ && ($IGNORECASE = 1);
+        m/k/ && ($KOMPLETT = 1);
+        m/l/ && ($Ausgabe = $AUSG_LISTE);
+        m/m/ && ($Ident = $IDENT_NAME);
+        m/n/ && ($Ident = $IDENT_SIZE);
+        m/o/ && ($Ident = $IDENT_ONLY);
+        m/q/ && ($STUMM = 1);
+        m/r/ && ($NextArgNurTyp = 1);
+        m/s/ && ($ZeigStat = 1);
+        m/t/ && ($Ident = $IDENT_TYP);
+        m/u/ && ($Ausgabe = $AUSG_UNIX) && ($PathSep = '/');
+        m/v/ && &version();
+        m/x/ && ($KOMPLETT = 0);
+        m/z/ && ($Ausgabe = $AUSG_NICHT);
+    }
+    elsif ($NextArgAusschlListe) {
+        $ExclList .= $_ . ',';
+        $NextArgAusschlListe = 0;
+    }
+    elsif ($NextArgNurTyp) {
+        $NurTypen .= $_ . ',';
+        $NextArgNurTyp = 0;
+    }
+    elsif ($NextArgListFile) {
+        if(open FILE, '<' . $_) {
+            while (<FILE>) {
+                chomp;
+                next if /^$/;
+                next if /^#/;
+                push @Pfade, $_;
+            }
+            close FILE;
+        }
+        else {
+            die "Kann Listendatei $_ nicht einlesen.\n";
+        }
+        $NextArgListFile = 0;
+    }
+    else {
+        push @Pfade, $_;
+    }
 }
 
 print $DESCRPT, "\n"
@@ -284,23 +323,24 @@ if (!$KOMPLETT && scalar(@Pfade) == 1) {
 print 'Gebe Dubletten in ',
       ($Ausgabe ? 'Loeschskript' : 'Listenform'),
       " aus.\n"
-    if $AUSFUEHRL and $Ausgabe != $AUSG_NAME;
+    if $AUSFUEHRL and $Ausgabe < $AUSG_NAME;
 
 if ($Ausgabe == $AUSG_DOS) {
-    open(OUT, '>dupes.bat');
+    open(OUT, '>dupesdel.bat');
     print OUT "REM Dubletten loeschen\n";
 }
 elsif ($Ausgabe == $AUSG_UNIX) {
-    open(OUT, '>dupes.sh');
+    open(OUT, '>dupes_rm.sh');
     print OUT "#!/bin/sh\n";
 }
 
 $StartPfad = $ENV{'PWD'};
 
-unless ($STUMM) {
-    print 'Dateien wegen Namen ausschliessen: ', substr($ExclList, 1, -1) , "\n"
-        if $ExclList gt ','
-}
+print 'Dateien wegen Namen ausschliessen: ', substr($ExclList, 0, -1), "\n"
+    if $ExclList gt '' && ! $TUMM;
+
+print 'Nur diese Dateitypen betrachten: ', substr($NurTypen, 0, -1), "\n"
+    if $NurTypen gt '' && ! $STUMM;
 
 $NaechstesObjekt = 0;
 foreach $pfad (@Pfade) {
@@ -312,14 +352,9 @@ foreach $pfad (@Pfade) {
         &ScanFile($pfad);
     }
     elsif (-d _) {
-
-        if ($StartPfad) {
-            chdir $StartPfad || die $PROGRAM, $dopp, "Kann Startpfad nicht finden!\n";
-        }
-
-        chdir $pfad || die $PROGRAM, $dopp, "Kann Pfad nicht untersuchen!\n";
+        chdir $pfad || die $PROGRAM, $dopp, 'Kann Pfad ', $pfad, " nicht untersuchen!\n";
         &ScanDir;
-        chdir '..';
+        chdir $StartPfad || die $PROGRAM, $dopp, "Kann Startpfad nicht wiederfinden!\n";
     }
     else {
         print $AUSFUEHRL ? "\tWas ist das?\n" : $PROGRAM . $dopp . $pfad . " nicht gefunden.\n";
@@ -336,10 +371,19 @@ elsif ($Ausgabe == $AUSG_UNIX) {
 }
 close(OUT) if $Ausgabe != 0;
 
-print '-' x 75, "\n",
-      'Fertig mit ', &formint($dupecount), ' Dubletten in ',
-                     &formint($filecount), ' Dateien in ',
-                     &formint($dircount), ' Verzeichnissen in ',
-                     scalar(@Pfade), " Objekt(en).\n"
-    unless ($Ausgabe == $AUSG_NAME) or $STUMM;
+print '-' x 75, "\n";
+print 'Es wurden ', &formint($symlinkcount), " symbolische Links ignoriert.\n"
+    if $symlinkcount && ! $STUMM;
+print 'Es wurden ', &formint($emptyfiles), " leere Dateien ignoriert.\n"
+    if $emptyfiles && ($Ident = $IDENT_CRC) && ! $STUMM;
 
+print 'Fertig ',
+      $dupecount == 0 ? 'OHNE' : 'mit '. &formint($dupecount),
+      ' Dubletten in ',
+      &formint($filecount), ' Dateien in ',
+      $dircount == 1 ? 'einem Verzeichnis' :
+                       &formint($dircount). ' Verzeichnissen',
+      ' in ',
+      scalar(@Pfade) == 1 ? 'einem Objekt' : scalar(@Pfade) . ' Objekten',
+      ".\n"
+    unless ($Ausgabe == $AUSG_NAME) or $STUMM;
