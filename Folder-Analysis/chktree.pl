@@ -1,22 +1,16 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer @ Jogisoft, 2004-04-22, 2006-01-15, 2010-10-18, 2017-01-26, 2023-01-03
+# (c) Joerg Meyer @ Jogisoft, 2004-04-22, 2006-01-15, 2010-10-18, 2017-01-26, 2023-01-03..2023-11-07
 # Code copyrighted and shared under GPL v3.0
 
-# use bigint;
-# Einsatz von "bigint" fuehrte zu Fehlern!
-
 $PROGRAM   = 'chktree.pl';
-$VERSION   = 'v0.55';
+$VERSION   = 'v0.58';
 $DESCRPT   = 'Baumstruktur aufaddieren und Extremwerte finden';
 
 $STARTPFAD = '';
 @STARTAUSW = ();
 @IGNORAUSW = ();
-$IGNORNEXT = 0;
-$REGEXNEXT = 0;
-$RECURS    = 1;
-$AUSWTIEFE = 1;
-$DISPDIAG  = 0;
+$AUSFUEHRL = $IGNORNEXT = $IGNORECASE = $REGEXNEXT = $DISPDIAG  = $DISPLONG  = 0;
+$RECURS    = $AUSWTIEFE = 1;
 $ONEDAY    = 24 * 3600;
 $trenn     = ' - ';
 
@@ -26,19 +20,22 @@ if (@ARGV == 0) {
 }
 
 sub usage {
-    print 'Usage: ', $PROGRAM, " [Parameter] Startpfad [Startauswahl] [-s SkipDir]\n\n",
+    print 'Usage: ', $PROGRAM, " [Parameter] Startpfad[e]\n\n",
           "Parameter:\n",
           "\t-1\tNur ein Verzeichnis tief anzeigen (Vorgabe)\n",
           "\t-2\tZwei Verzeichnisse tief anzeigen\n",
-          "\t-<n>\t<n> Verzeichnisse tief anzeigen, fuer beliebiges <n>\n",
-          "\t-e\tWeitere Angaben sind regulaere Ausdruecke\n",
+          "\t-<n>\tBeliebige <n> Verzeichnisse tief anzeigen\n",
+          "\t-a\tAusfuerhrliche Meldungen\n",
+          "\t-d\tDiagnose-Parameter anzeigen\n",
+          "\t-e\tListe auszuschliessender Dateinamen\n",
           "\t-h\tHilfeseite anzeigen\n",
-          "\t-i\tMuster zum Ignorieren\n",
+          "\t-i\tGross- und Kleinschreibung ignorieren\n",
+          "\t-l\tLaengsten Dateinamen und -pfad anzeigen\n",
           "\t-n\tNicht rekursiv\n",
-          "\t-p\tDiagnose-Parameter anzeigen\n",
-          "\t-r\trekursiv (Vorgabe)\n",
+          "\t-r\tRekursiv (Vorgabe)\n",
           "\t-v\tVersion anzeigen\n",
-          "\t-w\tWeitere Angaben sind BS-Wildcards (Vorgabe)\n";
+          "\t-w\tWeitere Angaben sind BS-Wildcards (Vorgabe)\n",
+          "\t-x\tWeitere Angaben sind regulaere Ausdruecke\n";
     exit;
 }
 
@@ -53,7 +50,6 @@ sub formint {
     if ($t > 1000) {
         $t =~ s/(.+)(...)$/$1.$2/;
     }
-
     return $t;
 }
 
@@ -72,7 +68,6 @@ sub formsize {
         $t =~ s/(.+)(...)$/$1.$2/;
         return $t;
     }
-
 }
 
 sub ScanDir {
@@ -101,8 +96,16 @@ sub ScanDir {
     print '(', $tiefe, ':', scalar @liste, ') '
         if $DISPDIAG;
 
+    if ($AUSFUEHRL) {
+        $locpath = join('/', @dirstack);
+        $locpathlen = length($locpath);
+    }
+
     foreach $eintrag (@liste) {
-        if (-f $eintrag) {
+        if (-l $eintrag) {
+            $symlinkcount++;
+        }
+        elsif (-f $eintrag) {
 
             $filecount++;
             $dt = $^T - $ONEDAY * (-M $eintrag);
@@ -111,6 +114,17 @@ sub ScanDir {
             $fsize = (500 + -s $eintrag) >> 10;        # Speichern in gerundeten Kilobytes, sonst Ueberlauf bei 4 GB
             $sizesum += $fsize;
             $maxsize = $fsize if $fsize > $maxsize;
+            $maxlength = length($eintrag) if length($eintrag) > $maxlength;
+
+            if ($AUSFUEHRL) {
+                if (length($eintrag) > length($MaxLenName)) {
+                    $MaxLenName = $eintrag;
+                }
+
+                if ($locpathlen + 1 + length($eintrag) > length($MaxLenPath)) {
+                    $MaxLenPath = $locpath . '/' . $eintrag;
+                }
+            }
         }
     }
 
@@ -120,6 +134,11 @@ sub ScanDir {
                 next if ($eintrag eq '.') || ($eintrag eq '..');
                 # eigentlich jetzt redundant, aber schad't nicht...
 
+                if (-l $eintrag) {
+                    print 'Symlink ignoriert: ', $eintrag, "\n" if $DISPDIAG;
+                    next;
+                }
+
                 $raus = 0;
                 foreach $muster (@IGNORAUSW) {
                     $raus = 1 if $eintrag =~ m/$muster/;
@@ -127,15 +146,23 @@ sub ScanDir {
 
                 if ($raus) {
                     $ignorecount++;
+                    print 'Eintrag: ', $eintrag, " ueberspringen.\n"
+                        if $DISPDIAG;
                     next;
                 }
+
+                # print '>', join('/', @dirstack), '/', $eintrag, '< ' if $DISPDIAG;
 
                 push @dirstack, $eintrag;
 
                 if (chdir $eintrag) {
                     $tiefe++;
                     $maxtiefe = $tiefe if $tiefe > $maxtiefe;
-                    $ttlmaxtiefe = $tiefe if $tiefe > $ttlmaxtiefe;
+
+                    if ($tiefe > $ttlmaxtiefe) {
+                        $ttlmaxtiefe = $tiefe;
+                        $MaxDepPfad = join('/', @dirstack);
+                    }
 
                     if ($tiefe <= $AUSWTIEFE) {
                         push @maxdatestack, $maxdt;
@@ -146,6 +173,9 @@ sub ScanDir {
 
                         push @maxsizestack, $maxsize;
                         $maxsize = 0;
+
+                        push @maxlengthstack, $maxlength;
+                        $maxlength = 0;
 
                         push @maxdepthstack, $maxtiefe;
                         $maxtiefe = 0;  #  Eigentlich sollte hier nichts zurueckgesetzt werden!
@@ -173,11 +203,13 @@ sub ScanDir {
                             printf "%02d.%02d.%d", $day, $mon+1, $year+1900;
                         }
 
-                        printf "%7s%7s%9s%8s MB%9s MB  %s\n",
+                        printf "%7s%7s%9s%11s%9s MB  %s\n",
                                &formint($dircount-1),
                                &formint($maxtiefe),
                                &formint($filecount),
-                               &formsize($maxsize),
+                               ($DISPLONG ? 
+                                    '   ' . &formint($maxlength) :
+                                    &formsize($maxsize) . ' MB'),
                                &formsize($sizesum),
                                join('/', @dirstack);
 
@@ -188,6 +220,9 @@ sub ScanDir {
 
                         $tmp = pop @maxsizestack;
                         $maxsize = $tmp if $tmp > $maxsize;
+
+                        $tmp = pop @maxlengthstack;
+                        $maxlength = $tmp if $tmp > $maxlength;
 
                         $tmp = pop @maxdepthstack;  
                         $maxtiefe = $tmp if $tmp > $maxtiefe;
@@ -217,14 +252,17 @@ sub ScanDir {
 foreach (@ARGV) {
     if (substr($_, 0, 1) eq '-') {
         m/\d+/ && ($AUSWTIEFE = $&);
-        m/e/ && ($REGEXNEXT = 1);
+        m/a/ && ($AUSFUEHRL = 1);
+        m/d/ && ($DISPDIAG  = 1);
+        m/e/ && ($IGNORNEXT = 1);
         m/h|\?/ && &usage();
-        m/i/ && ($IGNORNEXT = 1);
+        m/i/ && ($IGNORECASE = 1);
+        m/l/ && ($DISPLONG  = 1);
         m/n/ && ($RECURS    = 0);
-        m/p/ && ($DISPDIAG  = 1);
         m/r/ && ($RECURS    = 1);
         m/v/ && &version();
         m/w/ && ($REGEXNEXT = 0);
+        m/x/ && ($REGEXNEXT = 1);
     }
     else {
         if ($STARTPFAD eq '' && $IGNORNEXT == 0) {
@@ -261,18 +299,26 @@ if ($STARTPFAD ne '.') {
     chdir($STARTPFAD) || die "Kann nicht nach $STARTPFAD wechseln!\n";
 }
 
-$tiefe = $maxtiefe = $maxdt = $sizesum = $maxsize = $ttlmaxtiefe = 0;
+$tiefe = $maxtiefe = $maxdt = $sizesum = $maxsize = $maxlength = $ttlmaxtiefe = 0;
 @dirstack = ();
+@lenstack = ();
 @maxdatestack = ();
 @sizestack = ();
 @maxsizestack = ();
+@maxlengthstack = ();
 @depthstack = ();
 @dircountstack = ();
 @filecountstack = ();
-$dircount = $filecount = $errorcount = $ignorecount = 0;
+$symlinkcount = $dircount = $filecount = $errorcount = $ignorecount = 0;
+$MaxLenName = $MaxLenPath = $MaxDepPath = '';
 
-print "Ltzt.Datei  Anz.U  Max.T  Anz.Dat  Grsst.Dat  Ges.Vol.    Verzeichnis\n",
-      "----------  -----  -----  -------  ---------  ----------  -----------\n";
+if ($DISPLONG) {
+    print "Ltzt.Datei  Anz.U  Max.T  Anz.Dat  Laeng.Nam  Ges.Vol.    Verzeichnis\n";
+}
+else {
+    print "Ltzt.Datei  Anz.U  Max.T  Anz.Dat  Grsst.Dat  Ges.Vol.    Verzeichnis\n";
+}
+print     "----------  -----  -----  -------  ---------  ----------  -----------\n";
 
 &ScanDir;
 
@@ -281,15 +327,26 @@ print "----------  -----  -----  -------  ---------  ----------  -----------\n";
 (undef, undef, undef, $day, $mon, $year,
  undef, undef, undef) = localtime($maxdt);
 
-printf "%02d.%02d.%d%7s%7s%9s%8s MB%9s MB  %s\n",
+printf "%02d.%02d.%d%7s%7s%9s%11s%9s MB  %s\n",
        $day, $mon+1, $year+1900,
        &formint($dircount),
        &formint($ttlmaxtiefe),
        &formint($filecount),
-       &formsize($maxsize),
+       ($DISPLONG ?
+            '   ' . &formint($maxlength) :
+            &formsize($maxsize) . ' MB'),
        &formsize($sizesum),
        '(Gesamt)';
 
+if ($AUSFUEHRL) {
+    print "\n",
+          'Laengster Dateiname (', length($MaxLenName), '): ', $MaxLenName, "\n",
+          'Laengster Dateipfad (', length($MaxLenPath), '): ', $MaxLenPath, "\n",
+          'Tiefster Verz.baum (', $ttlmaxtiefe, '):  ', $MaxDepPfad, "\n",
+          "\n";
+}
+
 print "Es sind $errorcount Fehler aufgetreten!\n" if $errorcount;
-print "Es wurden $ignorecount Eintraege ignoriert!\n" if $ignorecount;
+print 'Es wurden ', &formint($symlinkcount), " symbolische Links ignoriert!\n" if $symlinkcount;
+print 'Es wurden ', &formint($ignorecount), " Eintraege ignoriert!\n" if $ignorecount;
 print "Fertig.\n";
