@@ -1,37 +1,46 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer, 2005-08-19, 2016-09-27, 2017-01-27..30, 2023-01-09
+# (c) Joerg Meyer, 2005-08-19 .. 2025-11-10
 # Code copyrighted and shared under GPL v3.0
 # mailto:info@jogisoft.de
 
 $PROGRAM   = 'analyzeExt';
-$VERSION   = 'V0.22';
+$VERSION   = 'V0.25';
 $DESCRPT   = 'Verzeichnisbaum nach Dateitypen gruppieren.';
 
-$STARTPFAD = '';
 $VERBOSE   = 0;
+$STUMM     = 0;
 $RECURSE   = 1;
 $CAPEXT    = 1;
 $MAXFOUR   = 1;
 $trenn     = ' - ';
+@Pfade     = ();
+$StartPfad = $NurTypen  = ''; 
+
+$tiefe = $maxtiefe = 0;
+@dirstack = ();
+$dircount = $filecount = $filefound = $errorcount = $filevolume = 0;
 
 sub usage {
-    print 'Usage: ', $PROGRAM, " [Parameter] Pfad\n",
+    print 'Usage: ', $PROGRAM, " [Parameter] Pfad(e)\n",
           $DESCRPT, "\n\n",
           "Parameter:\n",
           "\t-a\tAusfuehrliche Textmeldungen\n",
           "\t-b\tBeliebig lange Erweiterungen\n",
-          "\t-g\tGross-/Kleinschreibung beachten\n",
+          "\t-g\tGross- und Kleinschreibung beachten\n",
           "\t-h\tDiese Hilfe ausgeben\n",
-          "\t-i\tGross-/Kleinschreibung ignorieren (Vorgabe)\n",
+          "\t-i\tGross- und Kleinschreibung ignorieren (Vorgabe)\n",
           "\t-m\tMaximal vier Zeichen lange Erweiterungen (Vorgabe)\n",
           "\t-n\tNicht rekursiv\n",
+          "\t-o\tNur benannte Dateitypen auflisten\n",
+          "\t-q\tKeine Textmeldungen\n",
           "\t-r\tRekursive (Vorgabe)\n",
           "\t-v\tVersion anzeigen\n";
     exit;
 }
 
 sub version {
-    print $PROGRAM, $trenn, $VERSION, $trenn, $DESCRPT, "\n";
+    print $PROGRAM, $trenn, $VERSION, "\n",
+          $DESCRPT, "\n";
     exit;
 }
 
@@ -66,11 +75,24 @@ sub RegisterFile {
     my $ext = '';
 
     $filecount++;
-    $filelen = (500 + -s $datei) >> 10;  # Speichern in gerundeten KB, sonst Überlauf bei 4 GB
+
+    $ext = '';
+    ($datei =~ m/$ExtPat/) && ($ext = lc $1);
+
+    if ($NurTypen gt '') {
+        # Nur Dateien durchlassen, die gewÃ¼nscht sind!
+        if ($ext gt '' && $NurTypen =~ /$ext,/) {
+            # Komma wichtig, um .js von .jsx zu unterscheiden
+            # Gut, kann weiter
+        }
+        else {
+            return 2;
+        }
+    }
+    $filefound++;
+
+    $filelen = (500 + -s $datei) >> 10;  # Speichern in gerundeten KB, sonst Ueberlauf bei 4 GB
     $filevolume += $filelen;
-
-    ($datei =~ m/$ExtPat/) && ($ext = $1);
-
     $CAPEXT && ($ext = uc $ext);
 
 # print "Datei: $datei --> Ext: $ext\n";
@@ -100,7 +122,7 @@ sub ScanDir {
                 next if ($eintrag eq '.') || ($eintrag eq '..');
 
                 push @dirstack, $eintrag;
-                $VERBOSE && print('--> ', join('/', $STARTPFAD, @dirstack), "\n");
+                $VERBOSE && print('--> ', join('/', $pfad, @dirstack), "\n");
 
                 if (chdir $eintrag) {;
                     $tiefe++;
@@ -135,29 +157,48 @@ foreach (@ARGV) {
         m/i/ && ($CAPEXT    = 1);
         m/n/ && ($RECURS    = 0);
         m/m/ && ($MAXFOUR   = 1);
+        m/o/ && ($NextArgNurTyp = 1);
+        m/q/ && ($STUMM     = 1);
         m/r/ && ($RECURS    = 1);
         m/v/ && &version();
     }
+    elsif ($NextArgNurTyp) {
+        $NurTypen .= $_ . ',';
+        $NextArgNurTyp = 0;
+    }
     else {
-        $STARTPFAD = $_;
+        push @Pfade, $_;
     }
 }
 
 $ExtPat = $MAXFOUR ? '\.([^.]{1,4})$' : '\.([^.]*)$';
-$tiefe = $maxtiefe = 0;
-@dirstack = ();
-$dircount = $filecount = $errorcount = $filevolume = 0;
 
-$STARTPFAD = '.' if $STARTPFAD eq ''; 
+print $DESCRPT, "\n"
+    unless $STUMM;
 
-print 'Untersuche ', $STARTPFAD eq '.' ? 'aktuelles Verzeichnis' : $STARTPFAD,
-      "\n"; 
+$StartPfad = $ENV{'PWD'};
 
-chdir($STARTPFAD) || die "Kann Startpfad $STARTPFAD nicht finden!\n";
+print '** Nur diese Dateitypen betrachten: ', substr($NurTypen, 0, -1) , "\n"
+    if $NurTypen gt '' && ! $STUMM;
 
-&ScanDir;
+die "Kein Pfad zur Durchsuchung angegeben!\n" if scalar(@Pfade) == 0;
 
-$VERBOSE && print "\n";
+foreach $pfad (@Pfade) {
+    print '-- Untersuche ', $pfad eq '.' ? 'aktuelles Verzeichnis' : $pfad,
+          "\n"
+        unless $STUMM;
+
+    if (-d $pfad) {
+        chdir $pfad || die $PROGRAM, $dopp, "Kann Pfad nicht untersuchen!\n";
+        &ScanDir;
+        chdir $StartPfad;
+    }
+    else {
+        print $pfad, " nicht gefunden.\n" unless $STUMM;
+    }
+
+    $VERBOSE && print "\n";
+}
 
 foreach (sort keys %extCount) {
     printf "%-8s%6s Datei(en) %9s MB\n",
@@ -168,7 +209,12 @@ foreach (sort keys %extCount) {
 
 print $errorcount, " Fehler sind aufgetreten.\n" if $errorcount;
 print &formint($dircount), ' Verzeichnisse (max. Tiefe: ', $maxtiefe, ') mit ',
-      &formint($filecount), ' Dateien in ',
-      &formsize($filevolume), " GB untersucht.\n";
-print scalar keys %extCount, " verschiedene Dateitypen gefunden.\n",
-      "Fertig.\n";
+      &formint($filecount), ' Dateien (zus. ', &formsize($filevolume), ' GB) in ', 
+      scalar(@Pfade) == 1 ? 'einem Objekt' : scalar(@Pfade). ' Objekten',
+      " durchsucht.\n"
+    unless $STUMM;
+print scalar keys %extCount, ' verschiedene Dateitypen',
+      $NurTypen gt '' ? ' in ' . &formint($filefound) . ' Dateien' : '',
+      " gesichtet.\n",
+      "Fertig.\n"
+    unless $STUMM;
