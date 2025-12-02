@@ -1,17 +1,16 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer @ Jogisoft, 2014-01-02 .. 2015-10-28, 2018-03-22, 2023-01-03
+# (c) Joerg Meyer @ Jogisoft, 2014-01-02 .. 2015-10-28, 2018-03-22, 2023-01-03, 2024-08-05
 # Code copyrighted and shared under GPL v3.0
 
 print "Luecken in Zahlenfolgen zeigen.\n";
 exit if $ARGV[0] eq '-h';
 
 $n = '';
-$zl = $lzl = 0;
-$luecke = 0;
+$lzl = 0;
+$luecke = $fehlen = 0;
 $abschnitt = 1000;
 
 while (<>) {
-    $zl++;
     chomp;
 
     next unless /[0-9]+/;
@@ -20,36 +19,47 @@ while (<>) {
     }
 
     if ($n eq '') {
-        print 'Zeile ', $zl, ":\tBeginn mit Wert ", $_, ".\n";
+        print 'Zeile ', $., ":\tBeginn mit Wert ", $_, ".\n";
     }
     elsif ($_ eq $n) {
-        print 'Zeile ', $zl, ":\t! Wiederholung ",  $_, "!\n";
+        print 'Zeile ', $., ":\t++ Wert ",  $_, " ist wiederholt!\n";
     }
     elsif ($_ == $n + 1) {
         # Super. Nachfolger gefunden.
     }
+    elsif ($_ < $n) {
+        print 'Zeile ', $., ":\t++ Wert ", $_, " ist kleiner als Vorgaenger!\n";
+    }
     else {
         $luecke++;
         if ($_ == $n + 2) {
-            print 'Zeile ', $zl, ":\tWert  ", $_ - 1, " fehlt.\n";
+            print 'Zeile ', $., ":\tWert  ", $_ - 1, " fehlt (1).\n";
+            $fehlen++;
         }
         elsif ($_ == $n + 3) {
-            print 'Zeile ', $zl, ":\tWerte ", $_ - 2, ' und ', $_ - 1, " fehlen.\n";
+            print 'Zeile ', $., ":\tWerte ", $_ - 2, ' und ', $_ - 1, " fehlen (2).\n";
+            $fehlen += 2;
         }
         elsif ($_ < $n + $abschnitt) {
-            print 'Zeile ', $zl, ":\tWerte ", $n + 1, ' bis ', $_ - 1, " fehlen.\n";
+            print 'Zeile ', $., ":\tWerte ", $n + 1, ' bis ', $_ - 1, ' fehlen (', $_ - $n - 1, ").\n";
+            $fehlen += $_ - $n - 1;
         }
         elsif (/^\d+/){
-            print 'Zeile ', $lzl, ":\tAbschnitt endet mit ", $n, ".\n";
-            print 'Zeile ', $zl, ":\tNeuer Abschnitt beginnt mit ", $_, ".\n";
+            print 'Zeile ', $lzl, ":\tAbschnitt endet mit ", $n, ".\n",
+                  'Zeile ', $., ":\tNeuer Abschnitt beginnt mit ", $_, ' (', $_ - $n - 1, ").\n";
+            $fehlen += $_ - $n - 1;      
         }
         else {
-            print 'Zeile ', $zl, ' nicht-numerischer Wert ', $n, ".\n";
+            print 'Zeile ', $., ' nicht-numerischer Wert ', $n, ".\n";
 	    $luecke--;
         }
     }
     $n = $_;
-    $lzl = $zl;
+    $lzl = $.;
 }
 print 'Zeile ', $lzl, ":\tEnde mit Wert ", $n, ".\n";
-print $luecke ? $luecke . ' Luecken in ' : 'Lueckenloses Ende nach ', $zl, " Zeilen.\n";
+
+print 'Fertig nach ', $luecke ? $luecke . ' Luecken in ' : 'Lueckenloses Ende nach ',
+      $lzl, ' Zeilen',
+      $fehlen ? ', ' . $fehlen . ' Zahlen fehlen' : '',
+      ".\n";
