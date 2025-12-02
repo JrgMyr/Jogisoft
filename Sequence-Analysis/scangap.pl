@@ -2,6 +2,9 @@
 # (c) Joerg Meyer @ Jogisoft, 2014-01-02 .. 2015-10-28, 2018-03-22, 2023-01-03, 2024-08-05
 # Code copyrighted and shared under GPL v3.0
 
+$PROGRAM = 'scangap.pl';
+$VERSION = 'v0.31';
+
 print "Luecken in Zahlenfolgen zeigen.\n";
 exit if $ARGV[0] eq '-h';
 
