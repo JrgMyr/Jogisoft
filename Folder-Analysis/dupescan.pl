@@ -1,10 +1,10 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer, 2005-01-05, 2010-02-07, 2022-12-26, 2023-10-28..11-10, 2024-01-15, 2024-05-17..30
+# (c) Joerg Meyer, 2005-01-05, 2010-02-07, 2023-10-28..11-10, 2024-05-17..30, 2025-11-09
 # Code copyrighted and shared under GPL v3.0
 # mailto:info@jogisoft.de
 
 $PROGRAM = 'dupescan.pl';
-$VERSION = 'y1.00';
+$VERSION = 'v1.01';
 $DESCRPT = 'Dateidubletten auflisten.';
 
 $trenn   = ' - ';
@@ -20,7 +20,7 @@ $AUSG_NAME  = 3;
 $AUSG_NICHT = 4;
 
 $IDENT_NAME = 0;
-$IDENT_SIZE = 1
+$IDENT_SIZE = 1;
 $IDENT_ONLY = 2;
 $IDENT_TYP  = 3;
 $IDENT_CRC  = 4;
@@ -52,7 +52,7 @@ sub usage {
           "\t-f\tDateinamen bzw. Pfade aus Datei einlesen\n",
           "\t-g\tAlle Unterverzeichnisse auswerten (Vorgabe)\n",
           "\t-h\tHilfeseite anzeigen\n",
-          "\t-i\tGross-/Kleinschreibung ignorieren\n",
+          "\t-i\tGross- und Kleinschreibung ignorieren\n",
           "\t-k\tAlle Dubletten, auch innerhalb Objekten (Vorgabe)\n",
           "\t-l\tAusgabe: Liste mit Dubletten (Vorgabe)\n",
           "\t-m\tIdent: Name, Groesse, Zeitstempel (Vorgabe)\n",
@@ -167,7 +167,7 @@ sub ScanFile {
                print $AktDat, "\n";
             }
             elsif ($Ausgabe == $AUSG_DOS) {
-                $AktDat =~ tr/ƒ÷‹‰ˆ¸ﬂ/éôöÑîÅ·/;
+                $AktDat =~ tr/       /       /;
                 print OUT 'del /Q "', $AktDat, '"', "\n";
             }
             elsif ($Ausgabe == $AUSG_UNIX) {
@@ -194,7 +194,7 @@ sub ScanFile {
             $filearch{$id} = $AktDat;
         }
         else {
-            # Weitere Objekte werden bei -m nicht als Ausgang f¸r Dubletten mitgez‰hlt.
+            # Weitere Objekte werden bei -m nicht als Ausgang f r Dubletten mitgez hlt.
         }
     }
 }
@@ -346,7 +346,7 @@ $NaechstesObjekt = 0;
 foreach $pfad (@Pfade) {
 
     $pfad =~ s/(\/|\\)+$//;
-    print "\nUntersuche: ", $pfad, "...\n" if $AUSFUEHRL;
+    print "\nUntersuche: ", $pfad, " ...\n" if $AUSFUEHRL;
 
     if (-f $pfad) {
         &ScanFile($pfad);
