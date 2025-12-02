@@ -1,9 +1,9 @@
 #!/usr/bin/env perl
-# (c) Joerg Meyer @ Jogisoft, 2004-04-22, 2006-01-15, 2010-10-18, 2017-01-26, 2023-01-03..2023-11-07
+# (c) Joerg Meyer @ Jogisoft, 2004-04-22, 2006-01-15, 2010-10-18, 2023-01-03..2023-11-07, 2025-11-09
 # Code copyrighted and shared under GPL v3.0
 
 $PROGRAM   = 'chktree.pl';
-$VERSION   = 'v0.58';
+$VERSION   = 'v0.60';
 $DESCRPT   = 'Baumstruktur aufaddieren und Extremwerte finden';
 
 $STARTPFAD = '';
@@ -20,12 +20,12 @@ if (@ARGV == 0) {
 }
 
 sub usage {
-    print 'Usage: ', $PROGRAM, " [Parameter] Startpfad[e]\n\n",
+    print 'Usage: ', $PROGRAM, " [Parameter] Startpfad [Startauswahl]\n\n",
           "Parameter:\n",
           "\t-1\tNur ein Verzeichnis tief anzeigen (Vorgabe)\n",
           "\t-2\tZwei Verzeichnisse tief anzeigen\n",
           "\t-<n>\tBeliebige <n> Verzeichnisse tief anzeigen\n",
-          "\t-a\tAusfuerhrliche Meldungen\n",
+          "\t-a\tAusfuehrliche Meldungen\n",
           "\t-d\tDiagnose-Parameter anzeigen\n",
           "\t-e\tListe auszuschliessender Dateinamen\n",
           "\t-h\tHilfeseite anzeigen\n",
