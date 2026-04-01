@@ -27,11 +27,14 @@ sub usage {
           "\t-t\tTitel in Zeile (n)\n",
           "\t-u\tUNIX-Zeilenenden <LF>\n",
           "\t-w\tWertestatistik ausgeben\n",
-          "\t-v\tVersion anzeigen\n";
-    exit;
+          "\t-v\tVersion anzeigen\n",
+          "\n",
+          "\tBeispiel: $PROGRAM -t 1 -w -s \",\" myfile.csv\n";
+     exit;
 }
 
 if (@ARGV == 0) {
+    &usage;
     die $PROGRAM, ": Keine Parameter und keine Datei angegeben!\n\n";
 }
 
